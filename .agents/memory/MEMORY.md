@@ -1,0 +1,1 @@
+- [GitHub connector writes](github-connector-writes.md) — bulk write endpoints can trigger temporary Cloudflare protection; verify branch state and prefer throttled, resumable uploads.
