@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: generator
+    description: QR code and barcode generation
+  - name: account
+    description: Account usage and plan information
 paths:
   /healthz:
     get:
@@ -24,6 +28,71 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /generate:
+    post:
+      operationId: generateCode
+      tags: [generator]
+      summary: Generate a QR code or barcode
+      description: Creates a generation transaction after enforcing the caller's daily plan limit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateInput"
+      responses:
+        "201":
+          description: Generated code transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Generation"
+        "403":
+          description: Plan limit reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /usage:
+    get:
+      operationId: getUsage
+      tags: [account]
+      summary: Get today's usage and plan limits
+      responses:
+        "200":
+          description: Current plan and usage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsageSummary"
+  /generations:
+    get:
+      operationId: listGenerations
+      tags: [generator]
+      summary: List recent generation history
+      responses:
+        "200":
+          description: Recent generations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Generation"
+  /plans:
+    get:
+      operationId: listPlans
+      tags: [account]
+      summary: List subscription plans
+      responses:
+        "200":
+          description: Available plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Plan"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +102,103 @@ components:
           type: string
       required:
         - status
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    GenerateInput:
+      type: object
+      properties:
+        format:
+          type: string
+          enum: [qrcode, barcode]
+        value:
+          type: string
+          minLength: 1
+        entries:
+          type: array
+          items:
+            type: string
+        options:
+          type: object
+          properties:
+            width:
+              type: number
+              minimum: 256
+              maximum: 4096
+            height:
+              type: number
+              minimum: 256
+              maximum: 4096
+            foreground:
+              type: string
+            background:
+              type: string
+            errorCorrection:
+              type: string
+              enum: [L, M, Q, H]
+          required: [width, height]
+      required:
+        - format
+        - options
+    Generation:
+      type: object
+      properties:
+        id:
+          type: string
+        format:
+          type: string
+          enum: [qrcode, barcode]
+        value:
+          type: string
+        entryCount:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [ready, processing]
+      required: [id, format, value, entryCount, createdAt, status]
+    UsageSummary:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [anonymous, starter, basic, admin]
+        dailyLimit:
+          type: number
+        usedToday:
+          type: number
+        remainingToday:
+          type: number
+        isAuthenticated:
+          type: boolean
+        resetAt:
+          type: string
+          format: date-time
+      required: [plan, dailyLimit, usedToday, remainingToday, isAuthenticated, resetAt]
+    Plan:
+      type: object
+      properties:
+        id:
+          type: string
+          enum: [anonymous, starter, basic, admin]
+        name:
+          type: string
+        price:
+          type: number
+        interval:
+          type: string
+          enum: [none, monthly]
+        dailyLimit:
+          type: number
+        description:
+          type: string
+        highlighted:
+          type: boolean
+      required: [id, name, price, interval, dailyLimit, description, highlighted]
 

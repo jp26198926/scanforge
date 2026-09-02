@@ -1,15 +1,16 @@
-# [Project name]
+# ScanForge
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+ScanForge is a production-focused QR code and Code 128 barcode generator with bulk entry, print-ready export, history, usage limits, and account plans.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — run the API server on the configured `PORT`
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required env: `DATABASE_URL`, `SESSION_SECRET`
+- Optional env: `SCANFORGE_ADMIN_EMAIL`, `BETTER_AUTH_URL`, `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_PLAN_ID_BASIC`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
 
 ## Stack
 
@@ -18,27 +19,41 @@ _Replace the heading above with the project's name, and this line with one sente
 - DB: PostgreSQL + Drizzle ORM
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Build: esbuild
+- Auth: Better Auth with email/password sessions
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/scanforge/src/pages/home.tsx` — generator workspace and high-resolution SVG/PNG exports
+- `artifacts/scanforge/src/pages/history.tsx` — generation history and repeat/download actions
+- `artifacts/scanforge/src/pages/pricing.tsx` — plan comparison and usage rules
+- `artifacts/api-server/src/routes/scanforge.ts` — generation, plan, usage, and history API
+- `artifacts/api-server/src/lib/auth.ts` — Better Auth configuration
+- `lib/api-spec/openapi.yaml` — source-of-truth API contract
+- `lib/db/src/schema/scanforge.ts` — ScanForge and Better Auth database schema
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- QR SVG and Code 128 SVG are generated in the browser for deterministic, print-ready downloads; the API records metadata and enforces transaction limits.
+- Anonymous sessions are browser-scoped and receive one daily transaction; authenticated users default to Starter with three daily transactions.
+- Basic is modeled as a five-dollar monthly plan with fifty daily transactions; payment-provider credentials are optional runtime configuration.
+- Better Auth uses the existing PostgreSQL database directly, with its tables included in the Drizzle schema.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Generate QR codes or Code 128 barcodes from one entry or newline-separated bulk input.
+- Preview outputs, tune size/error correction/color, download SVG or PNG, and copy SVG markup.
+- Review prior generations, reuse source values, and inspect daily usage.
+- Sign up/sign in with email and password, compare Anonymous/Starter/Basic plans, and manage browser preferences.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Visual direction: monochrome tool interface with burnt-orange accents, blue-black chrome, cream canvas, dense desktop sidebar, and a compact mobile shell.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- If Better Auth tables change, run `pnpm --filter @workspace/db run push` before testing account flows.
+- Regenerate typed API clients after OpenAPI changes with `pnpm --filter @workspace/api-spec run codegen`.
 
 ## Pointers
 

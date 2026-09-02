@@ -3,6 +3,8 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { toNodeHandler } from "better-auth/node";
+import { auth } from "./lib/auth";
 
 const app: Express = express();
 
@@ -26,6 +28,7 @@ app.use(
   }),
 );
 app.use(cors());
+app.all("/api/auth/{*splat}", toNodeHandler(auth));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

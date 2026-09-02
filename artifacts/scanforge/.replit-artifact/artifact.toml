@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "ScanForge"
+description = "A responsive SaaS for creating high-resolution QR codes and barcodes from single entries or bulk uploads, with plan-aware usage limits and exports."
+version = "1.0.0"
+id = "artifacts/scanforge"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25449
+
+[services.development]
+run = "pnpm --filter @workspace/scanforge run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/scanforge", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/scanforge/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25449"
+BASE_PATH = "/"
