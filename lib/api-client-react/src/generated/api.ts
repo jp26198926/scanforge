@@ -20,11 +20,14 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CheckoutResponse,
   ErrorResponse,
   GenerateInput,
   Generation,
   HealthStatus,
+  PaypalWebhookInput,
   Plan,
+  SubscriptionStatus,
   UsageSummary
 } from './api.schemas';
 
@@ -435,4 +438,224 @@ export function useListPlans<TData = Awaited<ReturnType<typeof listPlans>>, TErr
 
 
 
+
+export const getGetBasicSubscriptionUrl = () => {
+
+
+
+
+  return `/api/billing/basic`
+}
+
+/**
+ * @summary Get the signed-in account's Basic subscription status
+ */
+export const getBasicSubscription = async ( options?: Parameters<typeof customFetch>[1]): Promise<SubscriptionStatus> => {
+
+  return customFetch<SubscriptionStatus>(getGetBasicSubscriptionUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBasicSubscriptionQueryKey = () => {
+    return [
+    `/api/billing/basic`
+    ] as const;
+    }
+
+
+export const getGetBasicSubscriptionQueryOptions = <TData = Awaited<ReturnType<typeof getBasicSubscription>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBasicSubscription>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBasicSubscriptionQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBasicSubscription>>> = ({ signal }) => getBasicSubscription({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBasicSubscription>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBasicSubscriptionQueryResult = NonNullable<Awaited<ReturnType<typeof getBasicSubscription>>>
+export type GetBasicSubscriptionQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the signed-in account's Basic subscription status
+ */
+
+export function useGetBasicSubscription<TData = Awaited<ReturnType<typeof getBasicSubscription>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBasicSubscription>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBasicSubscriptionQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateBasicCheckoutUrl = () => {
+
+
+
+
+  return `/api/billing/basic/checkout`
+}
+
+/**
+ * Creates a $5/month PayPal subscription and returns its approval URL.
+ * @summary Create a PayPal checkout for the Basic plan
+ */
+export const createBasicCheckout = async ( options?: Parameters<typeof customFetch>[1]): Promise<CheckoutResponse> => {
+
+  return customFetch<CheckoutResponse>(getCreateBasicCheckoutUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCreateBasicCheckoutMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBasicCheckout>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createBasicCheckout>>, TError,void, TContext> => {
+
+const mutationKey = ['createBasicCheckout'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBasicCheckout>>, void> = () => {
+
+
+          return  createBasicCheckout(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBasicCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof createBasicCheckout>>>
+
+    export type CreateBasicCheckoutMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Create a PayPal checkout for the Basic plan
+ */
+export const useCreateBasicCheckout = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBasicCheckout>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createBasicCheckout>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getCreateBasicCheckoutMutationOptions(options));
+    }
+
+export const getHandlePaypalWebhookUrl = () => {
+
+
+
+
+  return `/api/billing/paypal/webhook`
+}
+
+/**
+ * @summary Process a signed PayPal subscription webhook
+ */
+export const handlePaypalWebhook = async (paypalWebhookInput: PaypalWebhookInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getHandlePaypalWebhookUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(paypalWebhookInput)
+  }
+);}
+
+
+
+
+
+export const getHandlePaypalWebhookMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof handlePaypalWebhook>>, TError,{data: BodyType<PaypalWebhookInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof handlePaypalWebhook>>, TError,{data: BodyType<PaypalWebhookInput>}, TContext> => {
+
+const mutationKey = ['handlePaypalWebhook'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof handlePaypalWebhook>>, {data: BodyType<PaypalWebhookInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  handlePaypalWebhook(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type HandlePaypalWebhookMutationResult = NonNullable<Awaited<ReturnType<typeof handlePaypalWebhook>>>
+    export type HandlePaypalWebhookMutationBody = BodyType<PaypalWebhookInput>
+    export type HandlePaypalWebhookMutationError = ErrorType<void>
+
+    /**
+ * @summary Process a signed PayPal subscription webhook
+ */
+export const useHandlePaypalWebhook = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof handlePaypalWebhook>>, TError,{data: BodyType<PaypalWebhookInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof handlePaypalWebhook>>,
+        TError,
+        {data: BodyType<PaypalWebhookInput>},
+        TContext
+      > => {
+      return useMutation(getHandlePaypalWebhookMutationOptions(options));
+    }
 

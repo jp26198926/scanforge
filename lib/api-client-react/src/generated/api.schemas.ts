@@ -127,3 +127,59 @@ export interface Plan {
   highlighted: boolean;
 }
 
+export type SubscriptionStatusPlan = typeof SubscriptionStatusPlan[keyof typeof SubscriptionStatusPlan];
+
+
+export const SubscriptionStatusPlan = {
+  starter: 'starter',
+  basic: 'basic',
+} as const;
+
+export type SubscriptionStatusStatus = typeof SubscriptionStatusStatus[keyof typeof SubscriptionStatusStatus];
+
+
+export const SubscriptionStatusStatus = {
+  inactive: 'inactive',
+  pending: 'pending',
+  active: 'active',
+  error: 'error',
+} as const;
+
+export interface SubscriptionStatus {
+  plan: SubscriptionStatusPlan;
+  status: SubscriptionStatusStatus;
+  configured: boolean;
+  /** @nullable */
+  subscriptionId: string | null;
+  /** @nullable */
+  approvalUrl: string | null;
+  /** @nullable */
+  message: string | null;
+}
+
+export type CheckoutResponsePlan = typeof CheckoutResponsePlan[keyof typeof CheckoutResponsePlan];
+
+
+export const CheckoutResponsePlan = {
+  basic: 'basic',
+} as const;
+
+export type CheckoutResponseStatus = typeof CheckoutResponseStatus[keyof typeof CheckoutResponseStatus];
+
+
+export const CheckoutResponseStatus = {
+  pending: 'pending',
+  active: 'active',
+} as const;
+
+export interface CheckoutResponse {
+  plan: CheckoutResponsePlan;
+  status: CheckoutResponseStatus;
+  subscriptionId: string;
+  /** @nullable */
+  approvalUrl: string | null;
+  message: string;
+}
+
+export interface PaypalWebhookInput { [key: string]: unknown }
+

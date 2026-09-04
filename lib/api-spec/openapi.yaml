@@ -14,6 +14,8 @@ tags:
     description: QR code and barcode generation
   - name: account
     description: Account usage and plan information
+  - name: billing
+    description: PayPal subscription billing
 paths:
   /healthz:
     get:
@@ -93,6 +95,67 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Plan"
+  /billing/basic:
+    get:
+      operationId: getBasicSubscription
+      tags: [billing]
+      summary: Get the signed-in account's Basic subscription status
+      responses:
+        "200":
+          description: Current subscription status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionStatus"
+  /billing/basic/checkout:
+    post:
+      operationId: createBasicCheckout
+      tags: [billing]
+      summary: Create a PayPal checkout for the Basic plan
+      description: Creates a $5/month PayPal subscription and returns its approval URL.
+      responses:
+        "201":
+          description: PayPal checkout created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResponse"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: PayPal request failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: PayPal is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /billing/paypal/webhook:
+    post:
+      operationId: handlePaypalWebhook
+      tags: [billing]
+      summary: Process a signed PayPal subscription webhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaypalWebhookInput"
+      responses:
+        "200":
+          description: Webhook accepted
+        "400":
+          description: Invalid webhook signature or event
+        "503":
+          description: PayPal webhook verification is not configured
 components:
   schemas:
     HealthStatus:
@@ -201,4 +264,41 @@ components:
         highlighted:
           type: boolean
       required: [id, name, price, interval, dailyLimit, description, highlighted]
+    SubscriptionStatus:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [starter, basic]
+        status:
+          type: string
+          enum: [inactive, pending, active, error]
+        configured:
+          type: boolean
+        subscriptionId:
+          type: ["string", "null"]
+        approvalUrl:
+          type: ["string", "null"]
+        message:
+          type: ["string", "null"]
+      required: [plan, status, configured, subscriptionId, approvalUrl, message]
+    CheckoutResponse:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [basic]
+        status:
+          type: string
+          enum: [pending, active]
+        subscriptionId:
+          type: string
+        approvalUrl:
+          type: ["string", "null"]
+        message:
+          type: string
+      required: [plan, status, subscriptionId, approvalUrl, message]
+    PaypalWebhookInput:
+      type: object
+      additionalProperties: true
 

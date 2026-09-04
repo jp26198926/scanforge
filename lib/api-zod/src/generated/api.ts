@@ -95,3 +95,37 @@ export const ListPlansResponseItem = zod.object({
 export const ListPlansResponse = zod.array(ListPlansResponseItem)
 
 
+/**
+ * @summary Get the signed-in account's Basic subscription status
+ */
+export const GetBasicSubscriptionResponse = zod.object({
+  "plan": zod.enum(['starter', 'basic']),
+  "status": zod.enum(['inactive', 'pending', 'active', 'error']),
+  "configured": zod.boolean(),
+  "subscriptionId": zod.string().nullable(),
+  "approvalUrl": zod.string().nullable(),
+  "message": zod.string().nullable()
+})
+
+
+/**
+ * Creates a $5/month PayPal subscription and returns its approval URL.
+ * @summary Create a PayPal checkout for the Basic plan
+ */
+export const CreateBasicCheckoutResponse = zod.object({
+  "plan": zod.enum(['basic']),
+  "status": zod.enum(['pending', 'active']),
+  "subscriptionId": zod.string(),
+  "approvalUrl": zod.string().nullable(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Process a signed PayPal subscription webhook
+ */
+export const HandlePaypalWebhookBody = zod.record(zod.string(), zod.unknown())
+
+export const HandlePaypalWebhookResponse = zod.unknown()
+
+

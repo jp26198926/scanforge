@@ -49,6 +49,17 @@ export const authUserTable = pgTable("user", {
   updatedAt: timestamp("updatedAt", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const scanforgeSubscriptionsTable = pgTable("scanforge_subscriptions", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => authUserTable.id, { onDelete: "cascade" }),
+  paypalSubscriptionId: text("paypal_subscription_id").notNull().unique(),
+  plan: text("plan").notNull().default("basic"),
+  status: text("status").notNull().default("pending"),
+  approvalUrl: text("approval_url"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const authSessionTable = pgTable("session", {
   id: text("id").primaryKey(),
   expiresAt: timestamp("expiresAt", { withTimezone: true }).notNull(),

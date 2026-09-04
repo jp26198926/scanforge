@@ -12,11 +12,9 @@ function getOwnerId() {
 
 export function getScanforgeHeaders(): Record<string, string> {
   const email = window.localStorage.getItem(EMAIL_KEY);
-  const plan = window.localStorage.getItem('scanforge-plan');
   return {
     'x-scanforge-owner': getOwnerId(),
     ...(email ? { 'x-scanforge-email': email } : {}),
-    ...(plan ? { 'x-scanforge-plan': plan } : {}),
   };
 }
 
@@ -30,5 +28,4 @@ export function saveAuthEmail(email: string) {
 
 export function clearAuthEmail() {
   window.localStorage.removeItem(EMAIL_KEY);
-  window.localStorage.removeItem('scanforge-plan');
 }

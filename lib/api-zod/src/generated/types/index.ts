@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './checkoutResponse';
+export * from './checkoutResponsePlan';
+export * from './checkoutResponseStatus';
 export * from './errorResponse';
 export * from './generateInput';
 export * from './generateInputFormat';
@@ -15,8 +18,12 @@ export * from './generation';
 export * from './generationFormat';
 export * from './generationStatus';
 export * from './healthStatus';
+export * from './paypalWebhookInput';
 export * from './plan';
 export * from './planId';
 export * from './planInterval';
+export * from './subscriptionStatus';
+export * from './subscriptionStatusPlan';
+export * from './subscriptionStatusStatus';
 export * from './usageSummary';
 export * from './usageSummaryPlan';
