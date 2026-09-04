@@ -193,6 +193,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /billing/basic/cancel:
+    post:
+      operationId: cancelBasicSubscription
+      tags: [billing]
+      summary: Cancel the signed-in account's Basic subscription
+      description: Cancels the remote PayPal subscription and returns the account to the Starter plan.
+      responses:
+        "200":
+          description: Subscription cancellation state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionStatus"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: PayPal request failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: PayPal is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /billing/paypal/webhook:
     post:
       operationId: handlePaypalWebhook

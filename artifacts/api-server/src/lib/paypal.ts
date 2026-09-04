@@ -126,6 +126,19 @@ export async function createPaypalBasicSubscription(userId: string) {
   } satisfies PaypalSubscription;
 }
 
+export async function cancelPaypalBasicSubscription(subscriptionId: string) {
+  await paypalRequest<PaypalResponse>(
+    `/v1/billing/subscriptions/${encodeURIComponent(subscriptionId)}/cancel`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reason: "Cancelled by the ScanForge account owner.",
+      }),
+    },
+  );
+}
+
 export async function verifyPaypalWebhook(
   headers: Record<string, string | undefined>,
   event: PaypalResponse,

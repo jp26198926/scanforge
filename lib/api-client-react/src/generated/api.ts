@@ -662,6 +662,78 @@ export const useCreateBasicCheckout = <TError = ErrorType<ErrorResponse>,
       return useMutation(getCreateBasicCheckoutMutationOptions(options));
     }
 
+export const getCancelBasicSubscriptionUrl = () => {
+
+
+
+
+  return `/api/billing/basic/cancel`
+}
+
+/**
+ * Cancels the remote PayPal subscription and returns the account to the Starter plan.
+ * @summary Cancel the signed-in account's Basic subscription
+ */
+export const cancelBasicSubscription = async ( options?: Parameters<typeof customFetch>[1]): Promise<SubscriptionStatus> => {
+
+  return customFetch<SubscriptionStatus>(getCancelBasicSubscriptionUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCancelBasicSubscriptionMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelBasicSubscription>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelBasicSubscription>>, TError,void, TContext> => {
+
+const mutationKey = ['cancelBasicSubscription'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelBasicSubscription>>, void> = () => {
+
+
+          return  cancelBasicSubscription(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelBasicSubscriptionMutationResult = NonNullable<Awaited<ReturnType<typeof cancelBasicSubscription>>>
+
+    export type CancelBasicSubscriptionMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Cancel the signed-in account's Basic subscription
+ */
+export const useCancelBasicSubscription = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelBasicSubscription>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelBasicSubscription>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getCancelBasicSubscriptionMutationOptions(options));
+    }
+
 export const getHandlePaypalWebhookUrl = () => {
 
 

@@ -151,6 +151,20 @@ export const CreateBasicCheckoutResponse = zod.object({
 
 
 /**
+ * Cancels the remote PayPal subscription and returns the account to the Starter plan.
+ * @summary Cancel the signed-in account's Basic subscription
+ */
+export const CancelBasicSubscriptionResponse = zod.object({
+  "plan": zod.enum(['starter', 'basic']),
+  "status": zod.enum(['inactive', 'pending', 'active', 'error']),
+  "configured": zod.boolean(),
+  "subscriptionId": zod.string().nullable(),
+  "approvalUrl": zod.string().nullable(),
+  "message": zod.string().nullable()
+})
+
+
+/**
  * @summary Process a signed PayPal subscription webhook
  */
 export const HandlePaypalWebhookBody = zod.record(zod.string(), zod.unknown())

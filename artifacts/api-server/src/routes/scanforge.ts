@@ -27,6 +27,7 @@ import {
 } from "../lib/cloudinary";
 import {
   createPaypalBasicSubscription,
+  cancelPaypalBasicSubscription,
   isPaypalApiError,
   isPaypalCheckoutConfigured,
   isPaypalWebhookConfigured,
@@ -369,6 +370,8 @@ router.get("/billing/basic", async (req, res): Promise<void> => {
             ? "Finish checkout in PayPal to activate Basic."
             : status === "error"
               ? "The last PayPal payment failed. Your Starter allowance remains active."
+              : subscription?.status === "cancelled"
+                ? "Basic is cancelled. Start a new subscription anytime from this page."
               : null,
     }),
   );
@@ -450,6 +453,67 @@ router.post("/billing/basic/checkout", async (req, res): Promise<void> => {
     const status = isPaypalApiError(error) ? error.status : 502;
     res.status(status >= 500 && status <= 599 ? status : 502).json({
       error: error instanceof Error ? error.message : "PayPal checkout could not be created.",
+    });
+  }
+});
+
+router.post("/billing/basic/cancel", async (req, res): Promise<void> => {
+  const identity = await getIdentity(req);
+  if (!identity) {
+    res.status(401).json({ error: "Sign in before managing your Basic subscription." });
+    return;
+  }
+
+  const [subscription] = await db
+    .select()
+    .from(scanforgeSubscriptionsTable)
+    .where(eq(scanforgeSubscriptionsTable.userId, identity.userId))
+    .orderBy(desc(scanforgeSubscriptionsTable.updatedAt))
+    .limit(1);
+
+  if (!subscription || !["active", "pending"].includes(subscription.status)) {
+    res.json(
+      GetBasicSubscriptionResponse.parse({
+        plan: "starter",
+        status: "inactive",
+        configured: isPaypalCheckoutConfigured(),
+        subscriptionId: null,
+        approvalUrl: null,
+        message: "There is no active Basic subscription to cancel.",
+      }),
+    );
+    return;
+  }
+  if (!isPaypalCheckoutConfigured()) {
+    res.status(503).json({ error: "PayPal subscription management is not configured for this workspace." });
+    return;
+  }
+
+  try {
+    await cancelPaypalBasicSubscription(subscription.paypalSubscriptionId);
+    await db
+      .update(scanforgeSubscriptionsTable)
+      .set({
+        status: "cancelled",
+        approvalUrl: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(scanforgeSubscriptionsTable.id, subscription.id));
+
+    res.json(
+      GetBasicSubscriptionResponse.parse({
+        plan: "starter",
+        status: "inactive",
+        configured: true,
+        subscriptionId: subscription.paypalSubscriptionId,
+        approvalUrl: null,
+        message: "Basic has been cancelled. Your account is back on the Starter allowance.",
+      }),
+    );
+  } catch (error) {
+    const status = isPaypalApiError(error) ? error.status : 502;
+    res.status(status >= 500 && status <= 599 ? status : 502).json({
+      error: error instanceof Error ? error.message : "PayPal could not cancel this subscription.",
     });
   }
 });

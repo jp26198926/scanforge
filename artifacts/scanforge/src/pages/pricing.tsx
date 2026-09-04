@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  getGetBasicSubscriptionQueryKey,
+  useCancelBasicSubscription,
   useCreateBasicCheckout,
   useGetBasicSubscription,
   useListPlans,
@@ -20,6 +20,7 @@ export default function PricingPage() {
   const { data, isLoading, isError, refetch } = useListPlans();
   const billing = useGetBasicSubscription({ request: { headers: getScanforgeHeaders() } });
   const checkout = useCreateBasicCheckout({ request: { headers: getScanforgeHeaders() } });
+  const cancel = useCancelBasicSubscription({ request: { headers: getScanforgeHeaders() } });
   const [message, setMessage] = useState('');
   const [checkoutUrl, setCheckoutUrl] = useState('');
   const [checkoutState, setCheckoutState] = useState<'idle' | 'pending' | 'active' | 'error'>('idle');
@@ -51,12 +52,27 @@ export default function PricingPage() {
       onSuccess: (response) => {
         setCheckoutUrl(response.approvalUrl ?? '');
         setCheckoutState(response.status);
-        setMessage(response.message);
+        setMessage(response.message ?? 'Basic subscription cancelled.');
         void billing.refetch();
       },
       onError: (error) => {
         setCheckoutState('error');
         setCheckoutUrl('');
+        setMessage(errorMessage(error));
+      },
+    });
+  }
+
+  function cancelSubscription() {
+    setMessage('');
+    cancel.mutate(undefined, {
+      onSuccess: (response) => {
+        setCheckoutUrl('');
+        setCheckoutState('idle');
+        setMessage(response.message ?? 'Basic subscription cancelled.');
+        void billing.refetch();
+      },
+      onError: (error) => {
         setMessage(errorMessage(error));
       },
     });
@@ -81,7 +97,10 @@ export default function PricingPage() {
               <p className="font-semibold uppercase tracking-[0.12em]">{visibleBillingState === 'active' ? 'Basic active' : visibleBillingState === 'pending' ? 'Checkout pending' : 'Checkout error'}</p>
               <p className="mt-1 text-muted-foreground">{message || billing.data?.message}</p>
             </div>
-            {visibleCheckoutUrl && visibleBillingState === 'pending' && <a href={visibleCheckoutUrl} target="_blank" rel="noreferrer" className="shrink-0 font-semibold underline">Continue in PayPal</a>}
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              {visibleCheckoutUrl && visibleBillingState === 'pending' && <a href={visibleCheckoutUrl} target="_blank" rel="noreferrer" className="font-semibold underline">Continue in PayPal</a>}
+              {visibleBillingState === 'active' && <button type="button" onClick={cancelSubscription} disabled={cancel.isPending} data-testid="button-cancel-basic" className="font-semibold text-destructive underline disabled:opacity-50">{cancel.isPending ? 'Cancelling…' : 'Cancel Basic'}</button>}
+            </div>
           </div>
         </div>
       )}
@@ -94,7 +113,7 @@ export default function PricingPage() {
             <div className="flex items-start justify-between"><div><h2 className="text-lg font-semibold">{plan.name}</h2><p className="mt-2 max-w-[200px] text-sm leading-5 text-muted-foreground">{plan.description}</p></div><span className="rounded-full bg-muted px-2 py-1 font-mono text-[10px] uppercase text-muted-foreground">{plan.dailyLimit}/day</span></div>
             <div className="mt-8 flex items-baseline gap-1"><span className="text-4xl font-semibold tracking-[-0.05em]">{plan.price === 0 ? 'Free' : `$${plan.price}`}</span>{plan.price > 0 && <span className="text-xs text-muted-foreground">/ month</span>}</div>
             <ul className="mt-7 space-y-3 text-xs text-muted-foreground"><li className="flex gap-2"><Check className="size-3.5 text-primary" /> High-resolution QR and barcode output</li><li className="flex gap-2"><Check className="size-3.5 text-primary" /> Single and bulk entry modes</li><li className="flex gap-2"><Check className="size-3.5 text-primary" /> Downloadable generation history</li></ul>
-            <button type="button" onClick={() => selectPlan(plan)} disabled={plan.id === 'basic' && (checkout.isPending || isBasicActive)} data-testid={`button-select-plan-${plan.id}`} className={`${plan.highlighted ? primaryButton : secondaryButton} mt-auto w-full disabled:cursor-not-allowed disabled:opacity-60`}>
+             <button type="button" onClick={() => selectPlan(plan)} disabled={plan.id === 'basic' && (checkout.isPending || isBasicActive || cancel.isPending)} data-testid={`button-select-plan-${plan.id}`} className={`${plan.highlighted ? primaryButton : secondaryButton} mt-auto w-full disabled:cursor-not-allowed disabled:opacity-60`}>
               {plan.price === 0 ? 'Use free tier' : checkout.isPending ? 'Starting checkout…' : isBasicActive ? 'Basic is active' : isBasicPending && visibleCheckoutUrl ? 'Continue in PayPal' : visibleBillingState === 'error' ? 'Try Basic again' : 'Choose Basic'} {plan.price > 0 && !isBasicActive && <ArrowRight className="size-3.5" />}
             </button>
           </article>;
