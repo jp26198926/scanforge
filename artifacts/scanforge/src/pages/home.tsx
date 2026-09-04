@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useGenerateCode, getGetUsageQueryKey, getListGenerationsQueryKey } from '@workspace/api-client-react';
+import { useGenerateCode, useSaveGenerationAsset, getGetUsageQueryKey, getListGenerationsQueryKey } from '@workspace/api-client-react';
 import type { GenerateInput, Generation } from '@workspace/api-client-react';
-import { ArrowRight, Check, ClipboardPaste, Download, FileText, Info, LoaderCircle, SlidersHorizontal, Sparkles, Upload, Zap } from 'lucide-react';
-import { CodeVisual, EmptyState, PageIntro, primaryButton, UsageMeter, downloadGeneration } from '@/components/scanforge-shell';
+import { ArrowRight, Check, ClipboardPaste, CloudUpload, Download, ExternalLink, FileText, Info, LoaderCircle, SlidersHorizontal, Sparkles, Upload, Zap } from 'lucide-react';
+import { buildGenerationAsset, CodeVisual, EmptyState, PageIntro, primaryButton, UsageMeter, downloadGeneration, downloadGenerationAsset, type GenerationExportOptions } from '@/components/scanforge-shell';
 import { getScanforgeHeaders } from '@/lib/session';
 
 type Format = GenerateInput['format'];
@@ -11,6 +11,7 @@ type Format = GenerateInput['format'];
 export default function Home() {
   const queryClient = useQueryClient();
   const generateCode = useGenerateCode({ request: { headers: getScanforgeHeaders() } });
+  const saveGenerationAsset = useSaveGenerationAsset({ request: { headers: getScanforgeHeaders() } });
   const [format, setFormat] = useState<Format>('qrcode');
   const [mode, setMode] = useState<'single' | 'bulk'>('single');
   const [value, setValue] = useState('');
@@ -23,9 +24,32 @@ export default function Home() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [result, setResult] = useState<Generation | null>(null);
   const [notice, setNotice] = useState('');
+  const [assetNotice, setAssetNotice] = useState('');
+  const [savingFormat, setSavingFormat] = useState<'svg' | 'png' | null>(null);
 
   const entries = bulkValue.split('\n').map((entry) => entry.trim()).filter(Boolean);
   const activeValue = mode === 'single' ? value.trim() : entries[0] || '';
+  const exportOptions: GenerationExportOptions = { width: Number(width), height: Number(height), foreground, background, errorCorrection };
+
+  async function saveAsset(outputFormat: 'svg' | 'png') {
+    if (!result) return;
+    setSavingFormat(outputFormat);
+    setAssetNotice('');
+    try {
+      const asset = await buildGenerationAsset(result.value || activeValue, result.format, outputFormat, exportOptions);
+      const savedGeneration = await saveGenerationAsset.mutateAsync({
+        id: result.id,
+        data: { asset, format: outputFormat },
+      });
+      setResult(savedGeneration);
+      setAssetNotice(`${outputFormat.toUpperCase()} saved to Cloudinary.`);
+      queryClient.invalidateQueries({ queryKey: getListGenerationsQueryKey() });
+    } catch (error) {
+      setAssetNotice(error instanceof Error ? error.message : 'The asset could not be saved. Local downloads are still available.');
+    } finally {
+      setSavingFormat(null);
+    }
+  }
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -102,7 +126,14 @@ export default function Home() {
             <div className="mt-5 grid min-h-[260px] place-items-center rounded-md bg-background p-6">
               {result ? <div className="flex flex-col items-center gap-4"><CodeVisual value={result.value || activeValue} format={result.format} size="small" /><p className="max-w-[210px] truncate font-mono text-[10px] text-muted-foreground">{result.value || activeValue}</p></div> : <EmptyState title="Nothing on the platen" detail="Your generated mark will appear here, ready for a clean export." />}
             </div>
-            {result && <button type="button" onClick={() => downloadGeneration(result.value || activeValue, result.format, result.id, { width: Number(width), height: Number(height), foreground, background, errorCorrection })} data-testid="button-download-preview" className="mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-primary px-3 py-2.5 text-xs font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"><Download className="size-3.5" /> Download SVG</button>}
+            {result && <div className="mt-4 space-y-2">
+              <button type="button" onClick={() => downloadGeneration(result.value || activeValue, result.format, result.id, exportOptions)} data-testid="button-download-preview" className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-3 py-2.5 text-xs font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"><Download className="size-3.5" /> Download SVG</button>
+              <button type="button" onClick={() => downloadGenerationAsset(result.value || activeValue, result.format, 'png', result.id, exportOptions)} data-testid="button-download-png-preview" className="flex w-full items-center justify-center gap-2 rounded-md border border-background/20 bg-background/10 px-3 py-2.5 text-xs font-semibold text-background transition-colors hover:bg-background/20"><Download className="size-3.5" /> Download PNG</button>
+              <button type="button" onClick={() => saveAsset('svg')} disabled={savingFormat !== null} data-testid="button-save-svg" className="flex w-full items-center justify-center gap-2 rounded-md border border-background/20 bg-background/10 px-3 py-2.5 text-xs font-semibold text-background transition-colors hover:bg-background/20 disabled:pointer-events-none disabled:opacity-50"><CloudUpload className="size-3.5" /> {savingFormat === 'svg' ? 'Saving SVG…' : 'Save SVG to Cloudinary'}</button>
+              <button type="button" onClick={() => saveAsset('png')} disabled={savingFormat !== null} data-testid="button-save-png" className="flex w-full items-center justify-center gap-2 rounded-md border border-background/20 bg-background/10 px-3 py-2.5 text-xs font-semibold text-background transition-colors hover:bg-background/20 disabled:pointer-events-none disabled:opacity-50"><CloudUpload className="size-3.5" /> {savingFormat === 'png' ? 'Saving PNG…' : 'Save PNG to Cloudinary'}</button>
+              {result.assetUrl && <a href={result.assetUrl} target="_blank" rel="noreferrer" data-testid="link-open-saved-asset" className="flex items-center justify-center gap-2 px-3 py-2 text-[11px] font-semibold text-background/75 underline underline-offset-2 hover:text-background"><ExternalLink className="size-3.5" /> Open saved asset</a>}
+              {assetNotice && <p className="rounded-md border border-background/15 bg-background/10 px-3 py-2 text-[11px] leading-5 text-background/80" data-testid="status-asset-save">{assetNotice}</p>}
+            </div>}
           </div>
         </aside>
       </div>

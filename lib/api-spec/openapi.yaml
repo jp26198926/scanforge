@@ -81,6 +81,61 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Generation"
+  /generations/{id}/asset:
+    post:
+      operationId: saveGenerationAsset
+      tags: [generator]
+      summary: Save a generated asset to Cloudinary
+      description: Uploads a browser-generated SVG or PNG for an authenticated generation owner.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssetUploadInput"
+      responses:
+        "201":
+          description: Generation with its durable Cloudinary asset URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Generation"
+        "400":
+          description: Invalid asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Generation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Cloudinary upload failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Cloudinary is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /plans:
     get:
       operationId: listPlans
@@ -225,7 +280,19 @@ components:
         status:
           type: string
           enum: [ready, processing]
-      required: [id, format, value, entryCount, createdAt, status]
+        assetUrl:
+          type: ["string", "null"]
+      required: [id, format, value, entryCount, createdAt, status, assetUrl]
+    AssetUploadInput:
+      type: object
+      properties:
+        asset:
+          type: string
+          minLength: 1
+        format:
+          type: string
+          enum: [svg, png]
+      required: [asset, format]
     UsageSummary:
       type: object
       properties:

@@ -78,6 +78,22 @@ export interface Generation {
   entryCount: number;
   createdAt: string;
   status: GenerationStatus;
+  /** @nullable */
+  assetUrl: string | null;
+}
+
+export type AssetUploadInputFormat = typeof AssetUploadInputFormat[keyof typeof AssetUploadInputFormat];
+
+
+export const AssetUploadInputFormat = {
+  svg: 'svg',
+  png: 'png',
+} as const;
+
+export interface AssetUploadInput {
+  /** @minLength 1 */
+  asset: string;
+  format: AssetUploadInputFormat;
 }
 
 export type UsageSummaryPlan = typeof UsageSummaryPlan[keyof typeof UsageSummaryPlan];

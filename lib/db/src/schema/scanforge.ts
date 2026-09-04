@@ -17,6 +17,7 @@ export const scanforgeGenerationsTable = pgTable("scanforge_generations", {
   value: text("value").notNull(),
   entryCount: integer("entry_count").notNull().default(1),
   status: text("status").notNull().default("ready"),
+  assetUrl: text("asset_url"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

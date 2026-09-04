@@ -15,4 +15,6 @@ export interface Generation {
   entryCount: number;
   createdAt: Date;
   status: GenerationStatus;
+  /** @nullable */
+  assetUrl: string | null;
 }

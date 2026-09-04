@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './assetUploadInput';
+export * from './assetUploadInputFormat';
 export * from './checkoutResponse';
 export * from './checkoutResponsePlan';
 export * from './checkoutResponseStatus';

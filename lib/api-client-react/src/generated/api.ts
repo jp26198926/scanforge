@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AssetUploadInput,
   CheckoutResponse,
   ErrorResponse,
   GenerateInput,
@@ -361,6 +362,79 @@ export function useListGenerations<TData = Awaited<ReturnType<typeof listGenerat
 
 
 
+
+export const getSaveGenerationAssetUrl = (id: string,) => {
+
+
+
+
+  return `/api/generations/${id}/asset`
+}
+
+/**
+ * Uploads a browser-generated SVG or PNG for an authenticated generation owner.
+ * @summary Save a generated asset to Cloudinary
+ */
+export const saveGenerationAsset = async (id: string,
+    assetUploadInput: AssetUploadInput, options?: Parameters<typeof customFetch>[1]): Promise<Generation> => {
+
+  return customFetch<Generation>(getSaveGenerationAssetUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(assetUploadInput)
+  }
+);}
+
+
+
+
+
+export const getSaveGenerationAssetMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveGenerationAsset>>, TError,{id: string;data: BodyType<AssetUploadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveGenerationAsset>>, TError,{id: string;data: BodyType<AssetUploadInput>}, TContext> => {
+
+const mutationKey = ['saveGenerationAsset'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveGenerationAsset>>, {id: string;data: BodyType<AssetUploadInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  saveGenerationAsset(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveGenerationAssetMutationResult = NonNullable<Awaited<ReturnType<typeof saveGenerationAsset>>>
+    export type SaveGenerationAssetMutationBody = BodyType<AssetUploadInput>
+    export type SaveGenerationAssetMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Save a generated asset to Cloudinary
+ */
+export const useSaveGenerationAsset = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveGenerationAsset>>, TError,{id: string;data: BodyType<AssetUploadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveGenerationAsset>>,
+        TError,
+        {id: string;data: BodyType<AssetUploadInput>},
+        TContext
+      > => {
+      return useMutation(getSaveGenerationAssetMutationOptions(options));
+    }
 
 export const getListPlansUrl = () => {
 

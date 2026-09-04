@@ -49,7 +49,8 @@ export const GenerateCodeResponse = zod.object({
   "value": zod.string(),
   "entryCount": zod.number(),
   "createdAt": zod.coerce.date(),
-  "status": zod.enum(['ready', 'processing'])
+  "status": zod.enum(['ready', 'processing']),
+  "assetUrl": zod.string().nullable()
 })
 
 
@@ -75,9 +76,37 @@ export const ListGenerationsResponseItem = zod.object({
   "value": zod.string(),
   "entryCount": zod.number(),
   "createdAt": zod.coerce.date(),
-  "status": zod.enum(['ready', 'processing'])
+  "status": zod.enum(['ready', 'processing']),
+  "assetUrl": zod.string().nullable()
 })
 export const ListGenerationsResponse = zod.array(ListGenerationsResponseItem)
+
+
+/**
+ * Uploads a browser-generated SVG or PNG for an authenticated generation owner.
+ * @summary Save a generated asset to Cloudinary
+ */
+export const SaveGenerationAssetParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+
+
+export const SaveGenerationAssetBody = zod.object({
+  "asset": zod.string().min(1),
+  "format": zod.enum(['svg', 'png'])
+})
+
+export const SaveGenerationAssetResponse = zod.object({
+  "id": zod.string(),
+  "format": zod.enum(['qrcode', 'barcode']),
+  "value": zod.string(),
+  "entryCount": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "status": zod.enum(['ready', 'processing']),
+  "assetUrl": zod.string().nullable()
+})
 
 
 /**

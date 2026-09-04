@@ -10,6 +10,7 @@ import {
 } from "@workspace/db";
 import {
   CreateBasicCheckoutResponse,
+  SaveGenerationAssetBody,
   GenerateCodeBody,
   GenerateCodeResponse,
   GetBasicSubscriptionResponse,
@@ -18,6 +19,12 @@ import {
   ListPlansResponse,
 } from "@workspace/api-zod";
 import { auth } from "../lib/auth";
+import {
+  CloudinaryConfigError,
+  CloudinaryUploadError,
+  isCloudinaryConfigured,
+  uploadAssetToCloudinary,
+} from "../lib/cloudinary";
 import {
   createPaypalBasicSubscription,
   isPaypalApiError,
@@ -174,6 +181,82 @@ router.get("/generations", async (req, res): Promise<void> => {
     .orderBy(desc(scanforgeGenerationsTable.createdAt))
     .limit(50);
   res.json(ListGenerationsResponse.parse(generations));
+});
+
+router.post("/generations/:id/asset", async (req, res): Promise<void> => {
+  const identity = await getIdentity(req);
+  if (!identity) {
+    res.status(401).json({ error: "Sign in to save assets to Cloudinary." });
+    return;
+  }
+
+  const generationId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  if (!generationId) {
+    res.status(400).json({ error: "A generation ID is required." });
+    return;
+  }
+
+  const parsed = SaveGenerationAssetBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const assetPrefix =
+    parsed.data.format === "svg" ? "data:image/svg+xml;base64," : "data:image/png;base64,";
+  if (
+    !parsed.data.asset.startsWith(assetPrefix) ||
+    parsed.data.asset.length > 20_000_000
+  ) {
+    res.status(400).json({ error: "Upload a valid SVG or PNG data URL." });
+    return;
+  }
+
+  const [generation] = await db
+    .select()
+    .from(scanforgeGenerationsTable)
+    .where(
+      and(
+        eq(scanforgeGenerationsTable.id, generationId),
+        eq(scanforgeGenerationsTable.ownerKey, identity.userId),
+      ),
+    )
+    .limit(1);
+  if (!generation) {
+    res.status(404).json({ error: "Generation not found." });
+    return;
+  }
+  if (!isCloudinaryConfigured()) {
+    res.status(503).json({
+      error:
+        "Cloudinary asset storage is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET; local downloads are still available.",
+    });
+    return;
+  }
+
+  try {
+    const assetUrl = await uploadAssetToCloudinary({
+      asset: parsed.data.asset,
+      format: parsed.data.format,
+      generationId: generation.id,
+    });
+    const [savedGeneration] = await db
+      .update(scanforgeGenerationsTable)
+      .set({ assetUrl })
+      .where(eq(scanforgeGenerationsTable.id, generation.id))
+      .returning();
+    res.status(201).json(GenerateCodeResponse.parse(savedGeneration));
+  } catch (error) {
+    if (error instanceof CloudinaryConfigError) {
+      res.status(503).json({ error: error.message });
+      return;
+    }
+    if (error instanceof CloudinaryUploadError) {
+      req.log.error({ generationId: generation.id, error: error.message }, "Cloudinary asset upload failed");
+      res.status(502).json({ error: error.message });
+      return;
+    }
+    throw error;
+  }
 });
 
 router.get("/plans", (_req, res): void => {

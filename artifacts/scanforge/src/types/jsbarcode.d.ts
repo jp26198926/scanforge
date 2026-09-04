@@ -10,7 +10,7 @@ declare module 'jsbarcode' {
     fontSize?: number;
   };
 
-  type JsBarcodeApi = (element: SVGElement, value: string, options?: BarcodeOptions) => void;
+  type JsBarcodeApi = (element: SVGElement | HTMLCanvasElement, value: string, options?: BarcodeOptions) => void;
   const JsBarcode: JsBarcodeApi;
   export default JsBarcode;
 }

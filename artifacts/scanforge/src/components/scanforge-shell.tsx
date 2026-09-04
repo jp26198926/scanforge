@@ -155,7 +155,9 @@ export function CodeVisual({ value, format, size = 'normal' }: { value: string; 
   return <div className={`grid place-items-center bg-card ${size === 'small' ? 'size-28 p-3' : 'size-56 p-5 sm:size-64'}`} data-testid="visual-qrcode">{qrDataUrl ? <img src={qrDataUrl} alt={`QR code for ${value}`} className="size-full object-contain" /> : <div className="size-full animate-pulse rounded bg-muted" />}</div>;
 }
 
-export async function downloadGeneration(value: string, format: 'qrcode' | 'barcode', id = 'scanforge-code', options?: { width?: number; height?: number; foreground?: string; background?: string; errorCorrection?: 'L' | 'M' | 'Q' | 'H' }) {
+export type GenerationExportOptions = { width?: number; height?: number; foreground?: string; background?: string; errorCorrection?: 'L' | 'M' | 'Q' | 'H' };
+
+async function buildGenerationSvg(value: string, format: 'qrcode' | 'barcode', options?: GenerationExportOptions) {
   const width = options?.width ?? 2048;
   const height = options?.height ?? (format === 'barcode' ? Math.round(width / 2.5) : width);
   let svg = '';
@@ -168,8 +170,78 @@ export async function downloadGeneration(value: string, format: 'qrcode' | 'barc
     node.setAttribute('height', String(height));
     svg = new XMLSerializer().serializeToString(node);
   }
+  return { svg, width, height };
+}
+
+function toBase64(value: string) {
+  const bytes = new TextEncoder().encode(value);
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
+}
+
+export async function buildGenerationAsset(
+  value: string,
+  format: 'qrcode' | 'barcode',
+  outputFormat: 'svg' | 'png',
+  options?: GenerationExportOptions,
+) {
+  if (outputFormat === 'svg') {
+    const { svg } = await buildGenerationSvg(value, format, options);
+    return `data:image/svg+xml;base64,${toBase64(svg)}`;
+  }
+
+  const width = options?.width ?? 2048;
+  const height = options?.height ?? (format === 'barcode' ? Math.round(width / 2.5) : width);
+  if (format === 'qrcode') {
+    return QRCode.toDataURL(value, {
+      type: 'image/png',
+      width,
+      margin: 2,
+      errorCorrectionLevel: options?.errorCorrection ?? 'M',
+      color: { dark: options?.foreground ?? '#10242d', light: options?.background ?? '#f7f4ee' },
+    });
+  }
+
+  const canvas = document.createElement('canvas');
+  JsBarcode(canvas, value, {
+    format: 'CODE128',
+    displayValue: true,
+    lineColor: options?.foreground ?? '#10242d',
+    background: options?.background ?? '#f7f4ee',
+    margin: 32,
+    width: Math.max(2, width / 600),
+    height: Math.max(120, height * 0.55),
+    fontSize: Math.max(18, width / 55),
+  });
+  return canvas.toDataURL('image/png');
+}
+
+export async function downloadGeneration(value: string, format: 'qrcode' | 'barcode', id = 'scanforge-code', options?: GenerationExportOptions) {
+  const { svg } = await buildGenerationSvg(value, format, options);
   const blob = new Blob([svg], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = `${id}.${format}.svg`; anchor.click(); URL.revokeObjectURL(url);
+}
+
+export async function downloadGenerationAsset(
+  value: string,
+  format: 'qrcode' | 'barcode',
+  outputFormat: 'svg' | 'png',
+  id = 'scanforge-code',
+  options?: GenerationExportOptions,
+) {
+  const dataUrl = await buildGenerationAsset(value, format, outputFormat, options);
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `${id}.${format}.${outputFormat}`;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 export function EmptyState({ title, detail, action }: { title: string; detail: string; action?: ReactNode }) {
